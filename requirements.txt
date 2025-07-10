@@ -1,0 +1,5 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-dotenv==1.0.0
+livekit-agents[openai,silero,deepgram,cartesia]>=1.1.5
+livekit-api>=1.0.3

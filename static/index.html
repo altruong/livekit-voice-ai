@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medical Office Triage System</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 300;
+      }
+
+      .header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .control-panel,
+      .call-info,
+      .active-calls {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .control-panel h3,
+      .call-info h3,
+      .active-calls h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.3em;
+        margin-bottom: 20px;
+      }
+
+      .status {
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        text-align: center;
+      }
+
+      .status.ready {
+        background-color: #e8f5e8;
+        color: #2d5a2d;
+      }
+      .status.starting {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      .status.active {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .status.ended {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #555;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .start-btn,
+      .end-btn,
+      .refresh-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-right: 10px;
+      }
+
+      .start-btn {
+        background-color: #28a745;
+        color: white;
+      }
+
+      .start-btn:hover:not(:disabled) {
+        background-color: #218838;
+        transform: translateY(-1px);
+      }
+
+      .start-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .end-btn {
+        background-color: #dc3545;
+        color: white;
+      }
+
+      .end-btn:hover:not(:disabled) {
+        background-color: #c82333;
+        transform: translateY(-1px);
+      }
+
+      .end-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .refresh-btn {
+        background-color: #6c757d;
+        color: white;
+      }
+
+      .refresh-btn:hover {
+        background-color: #5a6268;
+        transform: translateY(-1px);
+      }
+
+      .call-info {
+        display: none;
+      }
+
+      .call-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+      }
+
+      .call-item.active {
+        background-color: #e8f5e8;
+        border-left-color: #28a745;
+      }
+
+      .call-item.ended {
+        background-color: #f8f9fa;
+        border-left-color: #6c757d;
+      }
+
+      #logs {
+        background: #1e1e1e;
+        color: #00ff00;
+        padding: 20px;
+        border-radius: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        margin-top: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .loading-indicator {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      .voice-status {
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .voice-status.loading {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+
+      .voice-status.ready {
+        background-color: #d4edda;
+        color: #155724;
+      }
+
+      .voice-status.error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🏥 Medical Office Triage System</h1>
+      <p>AI-powered voice assistant for patient support</p>
+      <div id="livekitStatus" class="voice-status loading">
+        🔄 Loading voice capabilities...
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="control-panel">
+        <h3>🎯 Start New Call</h3>
+        <div id="status" class="status ready">Ready to start new call</div>
+
+        <div class="form-group">
+          <label for="patientName">Patient Name (optional):</label>
+          <input
+            type="text"
+            id="patientName"
+            placeholder="Enter patient name"
+          />
+        </div>
+
+        <button id="startBtn" class="start-btn">
+          📞 Start Medical Triage Call
+        </button>
+        <button id="endBtn" class="end-btn" disabled>📴 End Call</button>
+        <button id="refreshBtn" class="refresh-btn">🔄 Refresh</button>
+      </div>
+
+      <div id="callInfo" class="call-info">
+        <h3>📱 Active Call</h3>
+        <div id="callDetails"></div>
+      </div>
+
+      <div class="active-calls">
+        <h3>📋 Call Management</h3>
+        <div id="callsList"></div>
+      </div>
+    </div>
+
+    <div id="logs"></div>
+
+    <!-- Load LiveKit client using ES modules approach -->
+    <script type="module">
+      // Modern ES module approach for LiveKit client
+      let LiveKit = null;
+
+      async function loadLiveKitClient() {
+        try {
+          // Try to import from ES modules CDN
+          const module = await import("https://cdn.skypack.dev/livekit-client");
+          LiveKit = module;
+          console.log("✅ LiveKit client loaded via ES modules");
+          return LiveKit;
+        } catch (error) {
+          console.warn("ES modules failed, trying UMD:", error);
+
+          // Fallback to UMD approach
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src =
+              "https://cdn.jsdelivr.net/npm/livekit-client@2.6.0/dist/livekit-client.umd.min.js";
+
+            script.onload = () => {
+              if (typeof window.LiveKit !== "undefined") {
+                console.log("✅ LiveKit client loaded via UMD");
+                resolve(window.LiveKit);
+              } else if (typeof window.Room !== "undefined") {
+                console.log("✅ LiveKit globals available");
+                resolve({
+                  Room: window.Room,
+                  RoomEvent: window.RoomEvent,
+                  Track: window.Track,
+                  ConnectionState: window.ConnectionState,
+                  LocalParticipant: window.LocalParticipant,
+                });
+              } else {
+                console.error(
+                  "❌ LiveKit client loaded but no recognized globals"
+                );
+                reject(new Error("LiveKit not available"));
+              }
+            };
+
+            script.onerror = () => {
+              console.error("❌ UMD script loading failed");
+              reject(new Error("Failed to load LiveKit client"));
+            };
+
+            document.head.appendChild(script);
+          });
+        }
+      }
+
+      // Create a promise that resolves when LiveKit is loaded
+      window.livekitLoadPromise = loadLiveKitClient();
+    </script>
+
+    <!-- Fallback: Create a minimal WebRTC connection if LiveKit fails -->
+    <script>
+      // Fallback WebRTC implementation
+      class SimplifiedLiveKitClient {
+        constructor() {
+          this.connected = false;
+          this.room = null;
+        }
+
+        async connect(url, token) {
+          console.log("🔄 Using simplified WebRTC fallback");
+          throw new Error("LiveKit client required for voice calls");
+        }
+      }
+
+      // Ensure there's always something available
+      window.livekitLoadPromise.catch(() => {
+        console.log("⚠️  Using fallback - voice calls disabled");
+        return new SimplifiedLiveKitClient();
+      });
+    </script>
+
+    <script>
+      class MedicalTriageController {
+        constructor() {
+          this.currentCall = null;
+          this.livekitReady = false;
+          this.livekitClient = null;
+          this.voiceRoom = null;
+          this.statusEl = document.getElementById("status");
+          this.startBtn = document.getElementById("startBtn");
+          this.endBtn = document.getElementById("endBtn");
+          this.refreshBtn = document.getElementById("refreshBtn");
+          this.patientNameInput = document.getElementById("patientName");
+          this.callInfoEl = document.getElementById("callInfo");
+          this.callDetailsEl = document.getElementById("callDetails");
+          this.callsListEl = document.getElementById("callsList");
+          this.logsEl = document.getElementById("logs");
+          this.livekitStatusEl = document.getElementById("livekitStatus");
+
+          this.setupEventListeners();
+          this.initializeLiveKit();
+          this.refreshStatus();
+
+          // Auto-refresh every 5 seconds
+          setInterval(() => this.refreshStatus(), 5000);
+        }
+
+        async initializeLiveKit() {
+          try {
+            this.log("🔄 Initializing LiveKit client...");
+            this.livekitClient = await window.livekitLoadPromise;
+
+            // Test if we have the required classes
+            this.testLiveKitCapabilities();
+
+            this.livekitReady = true;
+            this.livekitStatusEl.textContent = "✅ Voice calls ready";
+            this.livekitStatusEl.className = "voice-status ready";
+            this.log("✅ LiveKit client ready for voice calls");
+
+            // Refresh call info if there's an active call
+            if (this.currentCall) {
+              this.showCallInfo(this.currentCall);
+            }
+          } catch (error) {
+            this.livekitStatusEl.textContent = "❌ Voice calls unavailable";
+            this.livekitStatusEl.className = "voice-status error";
+            this.log(`❌ Failed to initialize LiveKit: ${error.message}`);
+            this.log(
+              "💡 Voice calls will be unavailable. You can still manage calls via text."
+            );
+            this.log(
+              "🔧 Try refreshing the page or check your internet connection"
+            );
+          }
+        }
+
+        testLiveKitCapabilities() {
+          const required = ["Room"];
+          const available = [];
+
+          if (this.livekitClient) {
+            if (this.livekitClient.Room) available.push("Room");
+            if (this.livekitClient.RoomEvent) available.push("RoomEvent");
+            if (this.livekitClient.Track) available.push("Track");
+
+            // Check global fallbacks
+            if (typeof window.Room !== "undefined")
+              available.push("Window.Room");
+          }
+
+          this.log(`🔍 LiveKit capabilities: ${available.join(", ")}`);
+
+          if (available.length === 0) {
+            throw new Error("No LiveKit capabilities detected");
+          }
+        }
+
+        setupEventListeners() {
+          this.startBtn.addEventListener("click", () => this.startCall());
+          this.endBtn.addEventListener("click", () => this.endCall());
+          this.refreshBtn.addEventListener("click", () => this.refreshStatus());
+        }
+
+        log(message) {
+          const timestamp = new Date().toLocaleTimeString();
+          this.logsEl.textContent += `[${timestamp}] ${message}\n`;
+          this.logsEl.scrollTop = this.logsEl.scrollHeight;
+          console.log(message);
+        }
+
+        updateStatus(message, className) {
+          this.statusEl.textContent = message;
+          this.statusEl.className = `status ${className}`;
+        }
+
+        async startCall() {
+          try {
+            this.updateStatus("Starting medical triage call...", "starting");
+            this.startBtn.disabled = true;
+            this.log("🎯 Starting medical triage call...");
+
+            const patientName = this.patientNameInput.value.trim() || null;
+
+            const response = await fetch("/calls/start", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ patient_name: patientName }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || `HTTP ${response.status}`);
+            }
+
+            const callData = await response.json();
+            this.currentCall = callData;
+
+            this.updateStatus(
+              `🟢 Call Active - Room: ${callData.room_name}`,
+              "active"
+            );
+            this.log(`✅ Call started: ${callData.message}`);
+            this.log(`📍 Room: ${callData.room_name}`);
+            this.log(`🎯 Call ID: ${callData.call_id}`);
+
+            this.showCallInfo(callData);
+            this.endBtn.disabled = false;
+          } catch (error) {
+            this.log(`❌ Error starting call: ${error.message}`);
+            this.updateStatus("Failed to start call", "ended");
+            this.startBtn.disabled = false;
+          }
+        }
+
+        async endCall() {
+          if (!this.currentCall) return;
+
+          try {
+            this.endBtn.disabled = true;
+            this.log("📞 Ending call...");
+
+            // Disconnect voice if connected
+            if (this.voiceRoom) {
+              await this.voiceRoom.disconnect();
+              this.voiceRoom = null;
+              this.log("🔇 Voice disconnected");
+            }
+
+            const response = await fetch(
+              `/calls/${this.currentCall.call_id}/end`,
+              {
+                method: "POST",
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(`Failed to end call: ${response.status}`);
+            }
+
+            const result = await response.json();
+            this.log(`✅ ${result.message}`);
+            this.updateStatus("Call ended", "ended");
+            this.hideCallInfo();
+            this.currentCall = null;
+            this.startBtn.disabled = false;
+          } catch (error) {
+            this.log(`❌ Error ending call: ${error.message}`);
+            this.endBtn.disabled = false;
+          }
+        }
+
+        async refreshStatus() {
+          try {
+            const response = await fetch("/calls");
+            if (!response.ok) return;
+
+            const data = await response.json();
+            this.updateCallsList(data);
+
+            // Check if current call is still active
+            if (this.currentCall) {
+              const callResponse = await fetch(
+                `/calls/${this.currentCall.call_id}`
+              );
+              if (callResponse.ok) {
+                const callStatus = await callResponse.json();
+                if (callStatus.status === "ended") {
+                  this.log("📞 Call ended by agent");
+                  this.updateStatus("Call ended", "ended");
+                  this.hideCallInfo();
+                  this.currentCall = null;
+                  this.startBtn.disabled = false;
+                  this.endBtn.disabled = true;
+
+                  // Disconnect voice if connected
+                  if (this.voiceRoom) {
+                    await this.voiceRoom.disconnect();
+                    this.voiceRoom = null;
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error refreshing status:", error);
+          }
+        }
+
+        showCallInfo(callData) {
+          const voiceButtonDisabled = !this.livekitReady ? "disabled" : "";
+          const voiceButtonText = this.livekitReady
+            ? "🎤 Join Voice Call"
+            : "⏳ Voice Unavailable";
+
+          this.callDetailsEl.innerHTML = `
+                    <div><strong>Call ID:</strong> ${callData.call_id}</div>
+                    <div><strong>Room:</strong> ${callData.room_name}</div>
+                    <div><strong>Status:</strong> ${callData.status}</div>
+                    <div style="margin-top: 15px;">
+                        <button onclick="app.joinVoiceCall('${
+                          callData.room_name
+                        }')" class="start-btn" ${voiceButtonDisabled}>${voiceButtonText}</button>
+                        ${
+                          this.voiceRoom
+                            ? '<button onclick="app.disconnectVoice()" class="end-btn">🔇 Disconnect Voice</button>'
+                            : ""
+                        }
+                    </div>
+                `;
+          this.callInfoEl.style.display = "block";
+        }
+
+        hideCallInfo() {
+          this.callInfoEl.style.display = "none";
+        }
+
+        updateCallsList(data) {
+          if (!data.active_calls && !data.ended_calls) return;
+
+          let html = "";
+
+          if (data.active_calls && data.active_calls.length > 0) {
+            html += "<h4>🟢 Active Calls:</h4>";
+            data.active_calls.forEach((call) => {
+              html += `
+                            <div class="call-item active">
+                                <div>
+                                    <strong>${call.patient_name}</strong><br>
+                                    <small>Room: ${
+                                      call.room_name
+                                    } | Started: ${new Date(
+                call.created_at
+              ).toLocaleTimeString()}</small>
+                                </div>
+                                <button onclick="app.endSpecificCall('${
+                                  call.call_id
+                                }')" class="end-btn">End</button>
+                            </div>
+                        `;
+            });
+          }
+
+          if (data.ended_calls && data.ended_calls.length > 0) {
+            html += "<h4>🔴 Recent Calls:</h4>";
+            data.ended_calls.slice(-3).forEach((call) => {
+              html += `
+                            <div class="call-item ended">
+                                <div>
+                                    <strong>${call.patient_name}</strong><br>
+                                    <small>Room: ${
+                                      call.room_name
+                                    } | Started: ${new Date(
+                call.created_at
+              ).toLocaleTimeString()}</small>
+                                </div>
+                                <span>Ended</span>
+                            </div>
+                        `;
+            });
+          }
+
+          if (html === "") {
+            html =
+              '<p style="text-align: center; color: #666;">No active calls</p>';
+          }
+
+          this.callsListEl.innerHTML = html;
+        }
+
+        async endSpecificCall(callId) {
+          try {
+            const response = await fetch(`/calls/${callId}/end`, {
+              method: "POST",
+            });
+            if (response.ok) {
+              this.log(`✅ Ended call ${callId}`);
+              this.refreshStatus();
+            }
+          } catch (error) {
+            this.log(`❌ Error ending call ${callId}: ${error.message}`);
+          }
+        }
+
+        async joinVoiceCall(roomName) {
+          try {
+            if (!this.livekitReady || !this.livekitClient) {
+              throw new Error(
+                "LiveKit client not ready. Please refresh the page and try again."
+              );
+            }
+
+            this.log(`🎤 Connecting to voice call in room: ${roomName}`);
+
+            // Get token for the existing room
+            const response = await fetch("/token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                room_name: roomName,
+                participant_name:
+                  "User-" + Math.random().toString(36).substr(2, 5),
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to get token: ${response.status}`);
+            }
+
+            const { token, url } = await response.json();
+            this.log(`🔗 Connecting to ${url}...`);
+
+            // Get LiveKit classes - try different approaches
+            const { Room, RoomEvent, Track } = this.getLiveKitClasses();
+
+            // Create room with recommended settings for voice agents
+            this.voiceRoom = new Room({
+              adaptiveStream: true,
+              dynacast: true,
+              audio: true,
+              video: false,
+              publishDefaults: {
+                videoSimulcast: false, // Disable for voice-only
+                audioPreset: {
+                  maxBitrate: 64000, // Optimize for voice
+                },
+              },
+            });
+
+            // Set up event handlers
+            this.setupVoiceRoomEvents(RoomEvent, Track);
+
+            // Connect to the room
+            await this.voiceRoom.connect(url, token);
+            this.log("🔗 Connected to LiveKit room");
+
+            // Enable microphone with error handling
+            try {
+              await this.voiceRoom.localParticipant.setMicrophoneEnabled(true);
+              this.log("✅ Microphone enabled - Start talking to the agent!");
+            } catch (micError) {
+              this.log(`⚠️  Microphone permission denied: ${micError.message}`);
+              this.log("💡 Please allow microphone access and try again");
+            }
+          } catch (error) {
+            this.log(`❌ Voice connection error: ${error.message}`);
+            this.log(
+              "🔧 Try refreshing the page or check your browser permissions"
+            );
+
+            if (this.voiceRoom) {
+              try {
+                await this.voiceRoom.disconnect();
+              } catch (disconnectError) {
+                console.warn("Error disconnecting room:", disconnectError);
+              }
+              this.voiceRoom = null;
+            }
+          }
+        }
+
+        getLiveKitClasses() {
+          // Try different ways to get LiveKit classes
+          let Room, RoomEvent, Track;
+
+          if (this.livekitClient && this.livekitClient.Room) {
+            // ES modules or namespace structure
+            Room = this.livekitClient.Room;
+            RoomEvent = this.livekitClient.RoomEvent;
+            Track = this.livekitClient.Track;
+          } else if (typeof window.Room !== "undefined") {
+            // Global variables (UMD)
+            Room = window.Room;
+            RoomEvent = window.RoomEvent || window.RoomEvents;
+            Track = window.Track;
+          } else if (
+            this.livekitClient &&
+            typeof this.livekitClient === "object"
+          ) {
+            // Check if it's a different structure
+            Room =
+              this.livekitClient.Room ||
+              Object.values(this.livekitClient).find(
+                (v) => v && v.name === "Room"
+              );
+            RoomEvent = this.livekitClient.RoomEvent;
+            Track = this.livekitClient.Track;
+          }
+
+          if (!Room) {
+            throw new Error(
+              "Cannot find Room constructor. Please refresh the page."
+            );
+          }
+
+          this.log(
+            `✅ Using Room: ${Room.name}, Events: ${
+              RoomEvent ? "available" : "fallback"
+            }`
+          );
+
+          return { Room, RoomEvent, Track };
+        }
+
+        setupVoiceRoomEvents(RoomEvent, Track) {
+          // Connection events
+          this.voiceRoom.on(RoomEvent?.Connected || "connected", () => {
+            this.log("✅ Voice connected - You can now talk to the agent!");
+            this.showCallInfo(this.currentCall);
+          });
+
+          this.voiceRoom.on(
+            RoomEvent?.Disconnected || "disconnected",
+            (reason) => {
+              this.log(`🔇 Voice call disconnected: ${reason || "unknown"}`);
+              this.voiceRoom = null;
+              if (this.currentCall) {
+                this.showCallInfo(this.currentCall);
+              }
+            }
+          );
+
+          // Participant events
+          this.voiceRoom.on(
+            RoomEvent?.ParticipantConnected || "participantConnected",
+            (participant) => {
+              this.log(`🤖 Agent "${participant.identity}" joined the room`);
+            }
+          );
+
+          // Track events
+          this.voiceRoom.on(
+            RoomEvent?.TrackSubscribed || "trackSubscribed",
+            (track, publication, participant) => {
+              this.log(`🔊 Receiving audio from ${participant.identity}`);
+              if (track.kind === (Track?.Kind?.Audio || "audio")) {
+                const audioElement = track.attach();
+                audioElement.autoplay = true;
+                audioElement.style.display = "none"; // Hide audio element
+                document.body.appendChild(audioElement);
+              }
+            }
+          );
+
+          // Error handling
+          this.voiceRoom.on(RoomEvent?.Reconnecting || "reconnecting", () => {
+            this.log("🔄 Reconnecting to voice call...");
+          });
+
+          this.voiceRoom.on(RoomEvent?.Reconnected || "reconnected", () => {
+            this.log("✅ Voice call reconnected");
+          });
+        }
+
+        async disconnectVoice() {
+          if (this.voiceRoom) {
+            await this.voiceRoom.disconnect();
+            this.voiceRoom = null;
+            this.log("🔇 Voice disconnected");
+            if (this.currentCall) {
+              this.showCallInfo(this.currentCall); // Refresh UI
+            }
+          }
+        }
+      }
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        window.app = new MedicalTriageController();
+      });
+    </script>
+  </body>
+</html>
